@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game of Thrones Quiz</title>
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at top, #0a0f1f, #000);
+  color: white;
+  text-align: center;
+  overflow: hidden;
+}
+.container {
+  max-width: 800px;
+  margin: auto;
+  padding: 20px;
+  position: relative;
+  z-index: 2;
+}
+h1 { text-shadow: 0 0 10px #3b82f6; }
+input {
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  margin-top: 10px;
+}
+button {
+  background: linear-gradient(45deg,#1e3a8a,#3b82f6);
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  margin: 10px;
+  cursor: pointer;
+  border-radius: 12px;
+}
+button:hover { transform: scale(1.05); }
+.question-box {
+  background: rgba(255,255,255,0.08);
+  padding: 20px;
+  border-radius: 15px;
+  margin-top: 20px;
+  box-shadow: 0 0 20px rgba(59,130,246,0.3);
+}
+.option {
+  display: block;
+  margin: 10px 0;
+  padding: 12px;
+  background: #0f172a;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.option:hover { background: #1e40af; }
+.hidden { display: none; }
+
+.snowflake {
+  position: fixed;
+  top: -10px;
+  color: white;
+  font-size: 10px;
+  animation: fall linear infinite;
+}
+@keyframes fall { to { transform: translateY(100vh); } }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>❄️ Game of Thrones Quiz ❄️</h1>
+
+  <!-- اسم اللاعب -->
+  <div id="startScreen">
+    <h2>Enter Your Name / اكتب اسمك</h2>
+    <input type="text" id="playerName" placeholder="Your name">
+    <br>
+    <button onclick="goToLanguage()">Start</button>
+  </div>
+
+  <div id="languageSelect" class="hidden">
+    <h2>Choose Language / اختر اللغة</h2>
+    <button onclick="startQuiz('en')">English</button>
+    <button onclick="startQuiz('ar')">العربية</button>
+  </div>
+
+  <div id="quiz" class="hidden">
+    <div id="question" class="question-box"></div>
+    <div id="options"></div>
+    <p id="scoreBox"></p>
+  </div>
+</div>
+
+<audio id="correctSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+<audio id="wrongSound" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
+
+<script>
+let current = 0;
+let lang = 'en';
+let score = 0;
+let playerName = "";
+
+let questions = [
+// EASY (10)
+{en:"Who was declared King in the North after the Battle of the Bastards?", ar:"من تم إعلانه ملك الشمال بعد معركة الأوغاد؟", options:["Jon Snow","Robb Stark","Ned Stark","Bran Stark"], answer:0},
+{en:"What is Jon Snow's direwolf?", ar:"ما اسم ذئب جون سنو؟", options:["Ghost","Nymeria","Summer","Grey Wind"], answer:0},
+{en:"Who killed the Night King?", ar:"من قتل ملك الليل؟", options:["Arya Stark","Jon Snow","Bran Stark","Samwell Tarly"], answer:0},
+{en:"What is the Iron Throne made of?", ar:"مم صنع العرش الحديدي؟", options:["Swords","Gold","Ice","Wood"], answer:0},
+{en:"What animal represents House Stark?", ar:"ما رمز آل ستارك؟", options:["Direwolf","Lion","Dragon","Stag"], answer:0},
+{en:"Who is Daenerys known as?", ar:"بماذا تُعرف دينيريس؟", options:["Mother of Dragons","Queen of the North","Red Woman","Lady of Winterfell"], answer:0},
+{en:"What is the capital of Westeros?", ar:"ما عاصمة ويستروس؟", options:["King's Landing","Winterfell","Braavos","Meereen"], answer:0},
+{en:"Who is Arya's father?", ar:"من هو والد آريا؟", options:["Ned Stark","Robb","Jon","Tywin"], answer:0},
+{en:"What is the Stark castle?", ar:"ما اسم قلعة آل ستارك؟", options:["Winterfell","Casterly Rock","Dragonstone","Highgarden"], answer:0},
+{en:"Who is the Kingslayer?", ar:"من هو قاتل الملك؟", options:["Jaime Lannister","Jon Snow","Tyrion","Sandor"], answer:0},
+
+// MEDIUM (10)
+{en:"What is Jon Snow's real name?", ar:"ما الاسم الحقيقي لجون سنو؟", options:["Aegon Targaryen","Viserys","Rhaegar","Aemon"], answer:0},
+{en:"Who poisoned King Joffrey?", ar:"من سمم الملك جوفري؟", options:["Olenna Tyrell","Tyrion","Sansa","Cersei"], answer:0},
+{en:"What does Valar Morghulis mean?", ar:"ما معنى فالار مورغوليس؟", options:["All men must die","Winter is coming","Fire and blood","Honor"], answer:0},
+{en:"Who became the Three-Eyed Raven?", ar:"من أصبح الغراب ذو الثلاث عيون؟", options:["Bran Stark","Jon Snow","Sam","Tyrion"], answer:0},
+{en:"Which house says 'Hear Me Roar'?", ar:"أي بيت شعاره اسمع زئيري؟", options:["Lannister","Stark","Targaryen","Baratheon"], answer:0},
+{en:"Who is Tyrion's father?", ar:"من هو والد تيريون؟", options:["Tywin Lannister","Jaime","Robert","Stannis"], answer:0},
+{en:"Where is the Iron Bank?", ar:"أين يقع البنك الحديدي؟", options:["Braavos","Qarth","Meereen","Volantis"], answer:0},
+{en:"Who trained Arya in Braavos?", ar:"من درب آريا في برافوس؟", options:["Jaqen H'ghar","Jon","Syrio","Sandor"], answer:0},
+{en:"What is Daenerys' biggest dragon?", ar:"ما أكبر تنين لدى دينيريس؟", options:["Drogon","Rhaegal","Viserion","Balerion"], answer:0},
+{en:"Who killed Oberyn Martell?", ar:"من قتل أوبرين مارتيل؟", options:["The Mountain","The Hound","Jaime","Brienne"], answer:0},
+
+// HARD (10)
+{en:"Who killed Tywin Lannister?", ar:"من قتل تايوين لانستر؟", options:["Tyrion","Jaime","Cersei","Arya"], answer:0},
+{en:"What kills White Walkers?", ar:"ما الذي يقتل الوايت ووكر؟", options:["Dragonglass","Iron","Gold","Steel"], answer:0},
+{en:"Who betrayed Robb Stark at the Red Wedding?", ar:"من خان روب ستارك في الزفاف الأحمر؟", options:["Walder Frey","Jon","Bran","Ned"], answer:0},
+{en:"Who conquered Westeros first?", ar:"من غزا ويستروس أولاً؟", options:["Aegon Targaryen","Jon","Viserys","Rhaegar"], answer:0},
+{en:"What is Arya's sword called?", ar:"ما اسم سيف آريا؟", options:["Needle","Oathkeeper","Longclaw","Widow's Wail"], answer:0},
+{en:"Who is The Hound?", ar:"من هو الكلب؟", options:["Sandor Clegane","Gregor","Jaime","Bronn"], answer:0},
+{en:"Who became king at the end?", ar:"من أصبح الملك في النهاية؟", options:["Bran Stark","Jon","Tyrion","Sansa"], answer:0},
+{en:"What is Jon Snow's sword?", ar:"ما اسم سيف جون سنو؟", options:["Longclaw","Ice","Needle","Oathkeeper"], answer:0},
+{en:"Who destroyed King's Landing?", ar:"من دمر كينغز لاندنج؟", options:["Daenerys","Cersei","Arya","Jon"], answer:0},
+{en:"What is the Wall?", ar:"ما هو الجدار؟", options:["Ice barrier in the North","Castle","Dragon","River"], answer:0}
+];
+
+function goToLanguage() {
+  const nameInput = document.getElementById('playerName').value.trim();
+  if (nameInput === "") {
+    alert("Please enter your name / من فضلك اكتب اسمك");
+    return;
+  }
+  playerName = nameInput;
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('languageSelect').classList.remove('hidden');
+}
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function shuffleQuestions() {
+  questions.forEach(q => {
+    const correct = q.options[q.answer];
+    shuffleArray(q.options);
+    q.answer = q.options.indexOf(correct);
+  });
+  shuffleArray(questions);
+}
+shuffleQuestions();
+
+function createSnow() {
+  for (let i = 0; i < 50; i++) {
+    const snow = document.createElement('div');
+    snow.className = 'snowflake';
+    snow.innerText = '❄';
+    snow.style.left = Math.random() * 100 + 'vw';
+    snow.style.animationDuration = (3 + Math.random() * 5) + 's';
+    snow.style.opacity = Math.random();
+    document.body.appendChild(snow);
+  }
+}
+createSnow();
+
+function startQuiz(selectedLang) {
+  lang = selectedLang;
+  document.getElementById('languageSelect').classList.add('hidden');
+  document.getElementById('quiz').classList.remove('hidden');
+  showQuestion();
+}
+
+function showQuestion() {
+  const q = questions[current];
+  document.getElementById('question').innerText = q[lang];
+  document.getElementById('scoreBox').innerText = playerName + " | Score: " + score;
+
+  const optionsDiv = document.getElementById('options');
+  optionsDiv.innerHTML = '';
+
+  let answered = false;
+
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'option';
+    btn.innerText = opt;
+
+    btn.onclick = () => {
+      if (answered) return;
+      answered = true;
+
+      if (i === q.answer) {
+        btn.style.background = 'green';
+        document.getElementById('correctSound').play();
+        score++;
+      } else {
+        btn.style.background = 'red';
+        document.getElementById('wrongSound').play();
+      }
+
+      document.querySelectorAll('.option').forEach((el, index) => {
+        if (index === q.answer) {
+          el.style.background = 'green';
+        }
+      });
+
+      setTimeout(() => nextQuestion(), 1500);
+    };
+
+    optionsDiv.appendChild(btn);
+  });
+}
+
+function nextQuestion() {
+  current++;
+  if (current < questions.length) {
+    showQuestion();
+  } else {
+    document.getElementById('quiz').innerHTML = `<h2>🔥 ${playerName}, Your Score: ${score} / ${questions.length}</h2>`;
+  }
+}
+</script>
+
+</body>
+</html>
